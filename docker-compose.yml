@@ -1,0 +1,12 @@
+version: '2.1'
+
+services:
+  telegramnotifier:
+    image: telegramnotifier
+    build: .
+    environment: 
+      "TelegramToken": "someToken"
+      "TelegramForwardTo": "123"
+      "TelegramDebug": "false"
+    ports:
+      - 8080:8080
