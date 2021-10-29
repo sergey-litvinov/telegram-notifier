@@ -1,56 +1,37 @@
 package main
 
 import (
-	"log"
-	"os"
-	"strconv"
-
+	"context"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"log"
 )
 
 var telegramSendingChannel chan string = make(chan string, 10)
 
-func startTelegramBot() {
-	telegramToken, success := os.LookupEnv("TelegramToken")
-	if !success {
-		log.Panicf("Telegram token isn't specified")
-	}
-	telegramForwardToStr, success := os.LookupEnv("TelegramForwardTo")
+func startTelegramBot(config Config, ctx context.Context) {
 
-	if !success {
-		log.Panicf("Telegram forward to isn't specified")
-	}
-
-	telegramForwardTo, err := strconv.Atoi(telegramForwardToStr)
+	bot, err := tgbotapi.NewBotAPI(config.Telegram.Token)
 	if err != nil {
-		log.Panicf("Failed to parse %s to int", telegramForwardToStr)
+		log.Panicf("Failed to start new bot instance: %s", err)
 	}
 
-	bot, err := tgbotapi.NewBotAPI(telegramToken)
-	if err != nil {
-		log.Panicf("Failed to start new bot instance", err)
-	}
-
-	telegramDebugStr, success := os.LookupEnv("TelegramDebug")
-	if success {
-		telegramDebug, err := strconv.ParseBool(telegramDebugStr)
-		if err != nil {
-			log.Panicf("Failed to parse %s : %v", telegramDebugStr, err)
-		}
-
-		bot.Debug = telegramDebug
-	}
-
-	go processSending(int64(telegramForwardTo), bot, telegramSendingChannel)
+	bot.Debug = config.Telegram.Debug
+	go processSending(config.Telegram.ForwardTo, bot, telegramSendingChannel)
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		log.Panicf("Failed to pull telegram updates: %v", err)
+		log.Panicf("Failed to pull telegram updates: %s", err)
 	}
 
 	for update := range updates {
+
+		if ctx.Err() != nil {
+			log.Printf("Stopping telegram listener...")
+			return
+		}
+
 		// ignore any non-Message\non-command updates
 		if update.Message == nil || !update.Message.IsCommand() {
 			continue
@@ -66,7 +47,7 @@ func startTelegramBot() {
 		}
 
 		if _, err := bot.Send(msg); err != nil {
-			log.Panicf("Failed to send telegram message: %v", err)
+			log.Panicf("Failed to send telegram message: %s", err)
 		}
 	}
 }

@@ -5,8 +5,10 @@ services:
     image: telegramnotifier
     build: .
     environment: 
-      "TelegramToken": "someToken"
-      "TelegramForwardTo": "123"
-      "TelegramDebug": "false"
+      "NOTIFIER_TELEGRAM_TOKEN": "someToken"
+      "NOTIFIER_TELEGRAM_FORWARDTO": "123"
+      "NOTIFIER_TELEGRAM_DEBUG": "false"
+      "NOTIFIER_HEALTHCHECK_DEBUG": "true"
+      "NOTIFIER_HEALTHCHECK_HOSTS": "https://test.com/health/check"
     ports:
       - 8080:8080
