@@ -37,7 +37,7 @@ func doAllHealthChecks(config Config) {
 			defer wg.Done()
 			err := doHealtcheck(endpoint, config.Healthcheck.Debug)
 			if err != nil {
-				telegramMessage := fmt.Sprintf("Health check for %s is failed.\n %s", host, err)
+				telegramMessage := fmt.Sprintf("Health check for %s is failed.\n%s", host, err)
 				log.Println(telegramMessage)
 				sendTelegramMessage(telegramMessage)
 			}
