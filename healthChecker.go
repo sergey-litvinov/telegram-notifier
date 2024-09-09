@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"html"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
+
 func startHealthcheck(config Config, ctx context.Context) {
 	log.Println("Starting health checker")
 
@@ -37,7 +40,7 @@ func doAllHealthChecks(config Config) {
 			defer wg.Done()
 			err := doHealtcheck(endpoint, config.Healthcheck.Debug)
 			if err != nil {
-				telegramMessage := fmt.Sprintf("Health check for %s is failed.\n%s", endpoint, err)
+				telegramMessage := fmt.Sprintf("Health check for `%s` is failed.\n%s", endpoint, err)
 				log.Println(telegramMessage)
 				sendTelegramMessage(telegramMessage)
 			}
@@ -67,7 +70,7 @@ func doHealtcheck(endpoint string, debug bool) error {
 		defer resp.Body.Close()
 
 		var bodyString string
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			bodyString = fmt.Sprintf("Failed to load body %s", err)
 		} else {
@@ -78,7 +81,15 @@ func doHealtcheck(endpoint string, debug bool) error {
 			log.Printf("Got non success response %v \n", resp)
 		}
 
-		return errors.New(fmt.Sprintf("StatusCode: %d. Response: %s", resp.StatusCode, bodyString))
+		// trim up to 500
+		if len(bodyString) > 500 {
+			bodyString = bodyString[:500]
+		}
+
+		bodyString = html.EscapeString(bodyString)
+		bodyString = strings.ReplaceAll(bodyString, "&#34;", "\"")
+
+		return errors.New(fmt.Sprintf("StatusCode: %d. Response: ```%s```", resp.StatusCode, bodyString))
 	}
 
 	// if endpoint is https we also validate expiration time
