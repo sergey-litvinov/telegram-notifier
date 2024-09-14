@@ -63,7 +63,9 @@ func doHealtcheck(endpoint string, debug bool) error {
 	}
 	resp, err := client.Get(endpoint)
 	if err != nil {
-		return err
+		// wrapping error with markdown's code block
+		// TODO: move formatting to upper layer
+		return errors.New(fmt.Sprintf("```%s```", error.Error(err)))
 	}
 
 	if resp.StatusCode != 200 {
